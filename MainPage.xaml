@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiButtonLayoutNreRepro.MainPage"
+             Title="Repro Launcher">
+
+    <VerticalStackLayout Spacing="24"
+                         Padding="32"
+                         VerticalOptions="Center">
+
+        <Label Text="Button.LayoutButton NRE Repro"
+               FontSize="22"
+               FontAttributes="Bold"
+               HorizontalOptions="Center" />
+
+        <Label Text="Tap the button below to navigate to the bug page, then tap 'Dismiss' to trigger the crash."
+               HorizontalOptions="Center"
+               HorizontalTextAlignment="Center"
+               FontSize="14" />
+
+        <Button Text="Go to Bug Page"
+                Clicked="OnGoToBugPageClicked"
+                HorizontalOptions="Center" />
+
+    </VerticalStackLayout>
+
+</ContentPage>
