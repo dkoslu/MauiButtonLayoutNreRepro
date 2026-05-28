@@ -27,25 +27,51 @@ public partial class BugPage : ContentPage
     public BugPage()
     {
         InitializeComponent();
+
+        // Heavy native view in Row 0 — WKWebView + autoplaying <video> keeps
+        // a long-lived native object graph that delays page disposal, widening
+        // the CA-transaction race window enough to surface the Button NRE.
+        VideoView.Source = new HtmlWebViewSource
+        {
+            Html = """
+                <!doctype html>
+                <html><head><meta name='viewport' content='width=device-width,initial-scale=1'>
+                <style>
+                  html,body{margin:0;padding:0;background:#1a1a2e;color:#eee;font-family:-apple-system;}
+                  video{width:100vw;height:100vh;object-fit:cover;}
+                  .overlay{position:fixed;top:0;left:0;right:0;padding:16px;
+                    background:linear-gradient(#000c,transparent);font-size:14px;text-align:center;}
+                </style></head>
+                <body>
+                  <video autoplay muted loop playsinline
+                    src='https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'></video>
+                  <div class='overlay'>Tap "Dismiss" below to trigger the crash.</div>
+                </body></html>
+                """
+        };
     }
 
     private async void OnDismissClicked(object? sender, EventArgs e)
     {
-        // -----------------------------------------------------------------------
-        // WORKAROUND — uncomment to prevent the crash:
-        //
-        // if (ButtonRow.Parent is Microsoft.Maui.Controls.Grid parentGrid)
-        //     parentGrid.Remove(ButtonRow);
-        //
-        // Removing ButtonRow from the Grid before GoToAsync takes it out of the
-        // iOS UIView hierarchy, so WrapperView.LayoutSubviews is never called on
-        // the buttons during Shell's outgoing animation.
-        // -----------------------------------------------------------------------
+        // Mirror production: the trigger fires on a worker thread (WebRTC
+        // state change), then marshals back to UI via MainThread.InvokeOn
+        // MainThreadAsync. That puts the IsVisible mutation + GoToAsync on
+        // a fresh main-loop tick — a different CA-transaction than the
+        // touch handler ran in — which is the race window the bug needs.
+        await Task.Run(async () =>
+        {
+            await Task.Delay(50);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                FlipButton.IsVisible = false;
 
-        // BUG: buttons are still attached here. Shell starts the slide-out
-        // animation, and the next CA transaction flush calls LayoutSubviews on
-        // their WrapperViews → Button.LayoutButton NRE → SIGABRT on device.
-        await Shell.Current.GoToAsync("..");
+                // WORKAROUND — uncomment to prevent the crash:
+                // if (ButtonRow.Parent is Microsoft.Maui.Controls.Grid parentGrid)
+                //     parentGrid.Remove(ButtonRow);
+
+                try { await Shell.Current.GoToAsync(".."); } catch { }
+            });
+        });
     }
 
     // Stubs — present to match the real-world button layout that triggers the bug.

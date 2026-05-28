@@ -29,34 +29,14 @@
 
     <!--
         The Grid structure mirrors the real-world trigger:
-          Row 0 = main content (video view / body)
+          Row 0 = main content (video view / body) — heavy native disposable
+                  to widen the layout-disposal race window
           Row 1 = button row that remains attached during GoToAsync (the bug)
     -->
     <Grid RowDefinitions="*,Auto">
 
-        <VerticalStackLayout Grid.Row="0"
-                             VerticalOptions="Center"
-                             Spacing="16"
-                             Padding="32">
-
-            <Label Text="Bug Page"
-                   FontSize="24"
-                   FontAttributes="Bold"
-                   TextColor="White"
-                   HorizontalOptions="Center" />
-
-            <Label TextColor="#cccccc"
-                   HorizontalTextAlignment="Center"
-                   FontSize="14">
-                <Label.Text>Tap "Dismiss" to call GoToAsync("..").
-
-Shell's outgoing animation will fire a layout pass on the buttons below while they are still in the visual tree. Button.LayoutButton dereferences a null reference (MAUI bug) → SIGABRT on iOS device.
-
-Reproduces on: physical iOS device, MAUI 9.0.x.
-Does NOT crash in iOS Simulator (layout timing differs).</Label.Text>
-            </Label>
-
-        </VerticalStackLayout>
+        <WebView Grid.Row="0"
+                 x:Name="VideoView" />
 
         <!--
             x:Name="ButtonRow" is the key:  OnDismissClicked references it
@@ -69,13 +49,16 @@ Does NOT crash in iOS Simulator (layout timing differs).</Label.Text>
                                HorizontalOptions="Center"
                                VerticalOptions="End">
 
-            <Button Text="Mute"
+            <Button x:Name="MuteButton"
+                    Text="Mute"
                     Clicked="OnMuteClicked" />
 
-            <Button Text="Flip"
+            <Button x:Name="FlipButton"
+                    Text="Flip"
                     Clicked="OnFlipClicked" />
 
-            <Button Text="Dismiss"
+            <Button x:Name="DismissButton"
+                    Text="Dismiss"
                     BackgroundColor="#d32f2f"
                     TextColor="White"
                     Clicked="OnDismissClicked" />
